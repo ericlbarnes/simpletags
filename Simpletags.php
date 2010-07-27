@@ -54,7 +54,7 @@ class Simpletags
 	// --------------------------------------------------------------------
 
 	/**
-	 * Set Delimeters
+	 * Set Delimiters
 	 *
 	 * Set the delimeters for the tags
 	 *
@@ -63,7 +63,7 @@ class Simpletags
 	 * @param	string	The right delimeter
 	 * @return	object	Returns $this to enable method chaining
 	 */
-	public function set_delimeters($left, $right)
+	public function set_delimiters($left, $right)
 	{
 		$this->_l_delim = $left;
 		$this->_r_delim = $right;
