@@ -101,7 +101,7 @@ class Simpletags
 	 * @access	public
 	 * @param	string	The content to parse
 	 * @param	array	The callback for each tag
-	 * @return	mixed	Either the tags as array or callback results
+	 * @return	array	The parsed content and the tags.
 	 */
 	public function parse($content, $data = array(), $callback = array())
 	{
@@ -159,6 +159,12 @@ class Simpletags
 			$this->_tag_count++;
 		}
 
+		// If there are no tags then just return the content and no tags.
+		if (empty($parsed_tags))
+		{
+			return array('content' => $orig_content, 'tags' => array());
+		}
+
 		// Lets replace all the data tags first
 		if ( ! empty($data))
 		{
@@ -196,7 +202,7 @@ class Simpletags
 				}
 			}
 
-			return $orig_content;
+			return array('content' => $orig_content, 'tags' => $parsed_tags);
 		}
 		else
 		{
