@@ -1,6 +1,6 @@
 # Simpletags
 
-Version 1.1
+Version 1.2
 
 * Author: [Dan Horrigan](http://dhorrigan.com/)
 
