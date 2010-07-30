@@ -8,12 +8,12 @@ Version 1.1
 
 Simpletags is exactly what it sounds like...a simple way to use tags in your PHP application.  This allows you to have tags that look like this:
 
-    {tag:something:other}
-    {tag:date format="m/d/Y"}
+    {something:other}
+    {date format="m/d/Y"}
     
-    {tag:blog:entries count="5"}
+    {blog:entries count="5"}
     Stuff here
-    {/tag:blog:entries}
+    {/blog:entries}
 
 ## INSTALLATION
 
@@ -31,7 +31,7 @@ You can send a config array to the constructor with the following options (these
     array(
         'l_delim' => '{',
         'r_delim' => '{',
-        'trigger' => 'tag:',
+        'trigger' => '',
     );
 
 You can also set the delimiters and triggers via the following functions:
@@ -52,9 +52,9 @@ If no callback is specified then the function will return an array.  Consider th
 
     Hello there.
     
-    tag:rest:get url="http://example.com/api" type="json"}
+    rest:get url="http://example.com/api" type="json"}
     Stuff here
-    {/tag:rest:get}
+    {/rest:get}
     
     Bye.
 
@@ -71,9 +71,9 @@ Parse would return this:
             (
                 [0] => Array
                     (
-                        [full_tag] => {tag:rest:get url="http://example.com/api" type="json"}
+                        [full_tag] => {rest:get url="http://example.com/api" type="json"}
     Stuff here
-    {/tag:rest:get}
+    {/rest:get}
                         [attributes] => Array
                             (
                                 [url] => http://example.com/api
@@ -96,33 +96,61 @@ Parse would return this:
 
     )
 
-### The Data Array
+### Using the Data Array
 
 The data array is a keyed array who's contents will replace tags with the same name.  Example:
 
-    {tag:foo:bar}
+    {foo:bar}
 
 Would be replaced with "Hello World" when the following data array is sent to the parse function:
 
     $data['foo']['bar'] = "Hello World"
+    
+You can use tag pairs to loop through data as well:
+
+#### Tag:
+
+    {books}
+    {title} by {author}<br />
+    {/books}
+
+#### Data
+
+    $data = array(
+        'books' => array(
+            array(
+                'title' => 'PHP for Dummies',
+                'author' => 'John Doe'
+            ),
+            array(
+                'title' => 'CodeIgniter for Dummies',
+                'author' => 'Jane Doe'
+            )
+        )
+    );
+
+#### Resulting Output
+
+    PHP for Dummies by John Doe
+    CodeIgniter for Dummies by Jane Doe
 
 ### Callbacks
 
 The callback must be in a form that is_callable() accepts (typically array(object, method)).  The callbac function should take 1 parameter (an array).
 
-The callback will be sent the tag information in the form of an array.  Consider the following tag:
+The callback will be sent the tag information in the form of an array.  Consider the following 
 
-    {tag:rest:get url="http://example.com/api" type="json"}
+    {rest:get url="http://example.com/api" type="json"}
     Stuff here
-    {/tag:rest:get}
+    {/rest:get}
 
 Would send the callback function the following array:
 
     Array
     (
-        [full_tag] => {tag:rest:get url="http://example.com/api" type="json"}
+        [full_tag] => {rest:get url="http://example.com/api" type="json"}
     Stuff here
-    {/tag:rest:get}
+    {/rest:get}
         [attributes] => Array
             (
                 [url] => http://example.com/api
