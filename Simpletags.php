@@ -1,4 +1,4 @@
-<?php defined('BASEPATH') or exit('No direct script access allowed');
+<?php
 /**
  * Simpletags
  *
@@ -14,7 +14,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *		http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,7 +25,7 @@
 
 class Simpletags
 {
-	private $_trigger = 'tag:';
+	private $_trigger = '';
 	private $_l_delim = '{';
 	private $_r_delim = '}';
 	private $_mark = 'k0dj3j4nJHDj22j';
@@ -101,7 +101,7 @@ class Simpletags
 	 * @access	public
 	 * @param	string	The content to parse
 	 * @param	array	The callback for each tag
-	 * @return	array	The parsed content and the tags.
+	 * @return	mixed	Either the tags as array or callback results
 	 */
 	public function parse($content, $data = array(), $callback = array())
 	{
@@ -132,9 +132,10 @@ class Simpletags
 			$attributes = (preg_match('/\s+.*/', $tag, $args)) ? trim($args[0]) : '';
 
 			// Lets start to create the parsed tag
-			$parsed['full_tag']	= $full_tag;
+			$parsed['full_tag'] = $full_tag;
 			$parsed['attributes'] = $this->_parse_attributes($attributes);
-			$parsed['segments'] = $this->_parse_segments(str_replace($this->_trigger, '', $segments));
+			$parsed['full_segments'] = str_replace($this->_trigger, '', $segments);
+			$parsed['segments'] = $this->_parse_segments($parsed['full_segments']);
 
 			// Set the end tag to search for
 			$end_tag = $this->_l_delim.'/'.$segments.$this->_r_delim;
@@ -159,7 +160,6 @@ class Simpletags
 			$this->_tag_count++;
 		}
 
-		// If there are no tags then just return the content and no tags.
 		if (empty($parsed_tags))
 		{
 			return array('content' => $orig_content, 'tags' => array());
@@ -168,46 +168,173 @@ class Simpletags
 		// Lets replace all the data tags first
 		if ( ! empty($data))
 		{
+			// Clean up the array
+			$data = $this->_force_array($data);
+
 			foreach ($parsed_tags as $key => $tag)
 			{
-				$found = TRUE;
-				$t_data = $data;
-				foreach ($tag['segments'] as $segment)
+				// Parse the single tags
+				if (empty($tag['content']))
 				{
-					if ( ! isset($t_data[$segment]))
-					{
-						$found = FALSE;
-						break;
-					}
-					$t_data = $t_data[$segment];
+					$return_data = $this->_parse_data_single($tag, $data);
 				}
-				if ($found)
+
+				// Parse the double tags
+				else
 				{
-					$orig_content = str_replace($tag['marker'], $t_data, $orig_content);
+					$return_data = $this->_parse_data_double($tag, $data);
+				}
+
+				// If the tag referenced data then put that data in the content
+				if ($return_data)
+				{
+					$orig_content = str_replace($tag['marker'], $return_data, $orig_content);
 					unset($parsed_tags[$key]);
 				}
 			}
-
 		}
 
 		// If there is a callback, call it for each tag
 		if ( ! empty($callback) AND is_callable($callback))
 		{
-			// Just return the content if there were no tags
-			if( ! empty($parsed_tags))
+			foreach ($parsed_tags as $tag)
 			{
-				foreach ($parsed_tags as $tag)
-				{
-					$orig_content = str_replace($tag['marker'], call_user_func($callback, $tag), $orig_content);
-				}
+				$orig_content = str_replace($tag['marker'], call_user_func($callback, $tag), $orig_content);
 			}
-
-			return array('content' => $orig_content, 'tags' => $parsed_tags);
 		}
+
+		// If there is no callback then lets loop through any remaining tags and just set them as ''
 		else
 		{
-			return array('content' => $orig_content, 'tags' => $parsed_tags);
+			foreach ($parsed_tags as $tag)
+			{
+				$orig_content = str_replace($tag['marker'], '', $orig_content);
+			}
 		}
+
+		return array('content' => $orig_content, 'tags' => $parsed_tags);
+	}
+
+	// --------------------------------------------------------------------
+
+	/**
+	 * Get the data pertaining to the given single tag.
+	 *
+	 * Example Data:
+	 * $data = array(
+	 *     'books' => array(
+	 *         'count' => 2
+	 *     )
+	 * );
+	 *
+	 * Example Tag:
+	 * {books:count}
+	 *
+	 * @access	private
+	 * @param	array	The single tag
+	 * @param	array	The data to parse
+	 * @return	mixed	Either the data for the tag or FALSE
+	 */
+	private function _parse_data_single($tag, $data)
+	{
+		foreach ($tag['segments'] as $segment)
+		{
+			if ( ! isset($data[$segment]))
+			{
+				return FALSE;
+			}
+			$data = $data[$segment];
+		}
+		return $data;
+	}
+
+	// --------------------------------------------------------------------
+
+	/**
+	 * Get the data pertaining to the given double tag.  This will
+	 * loop through arrays of given data
+	 *
+	 * Example Data:
+	 * $data = array(
+	 *     'books' => array(
+	 *         array(
+	 *             'title' => 'PHP for Dummies',
+	 *             'author' => 'John Doe'
+	 *         ),
+ 	 *         array(
+ 	 *             'title' => 'CodeIgniter for Dummies',
+ 	 *             'author' => 'Jane Doe'
+ 	 *         )
+	 *     )
+	 * );
+	 *
+	 * Example Tags:
+	 * {books}
+	 * {title} by {author}<br />
+	 * {/books}
+	 *
+	 * @access	private
+	 * @param	array	The double tag
+	 * @param	array	The data to parse
+	 * @return	mixed	Either the data for the tag or FALSE
+	 */
+	private function _parse_data_double($tag, $data)
+	{
+		$return_data = '';
+		foreach ($tag['segments'] as $segment)
+		{
+			if ( ! isset($data[$segment]))
+			{
+				return FALSE;
+			}
+			$data = $data[$segment];
+		}
+
+		$temp = new Simpletags();
+		foreach ($data as $val)
+		{
+			$return = $temp->parse($tag['content'], $val);
+			$return_data .= $return['content'];
+		}
+		unset($temp);
+
+		return $return_data;
+	}
+
+	// --------------------------------------------------------------------
+
+	/**
+	 * Forces normal multi-dimensional arrays and objects into an
+	 * array structure that will work with EE/Mojo/CI Parsers.
+	 *
+	 * @author	Phil Sturgeon <http://philsturgeon.co.uk>
+	 * @access	private
+	 * @param	mixed	The object or array to clean
+	 * @param	int		Used for recursion
+	 * @return	array	The clean array
+	 */
+	private function _force_array($var, $level = 1)
+	{
+		if (is_object($var))
+		{
+			$var = (array) $var;
+		}
+
+		if (is_array($var))
+		{
+			// Make sure everything else is array or single value
+			foreach ($var as $index => & $child)
+			{
+				$child = $this->_force_array($child, $level + 1);
+
+				if (is_object($child))
+				{
+					$child = (array) $child;
+				}
+			}
+		}
+
+		return $var;
 	}
 
 	// --------------------------------------------------------------------
