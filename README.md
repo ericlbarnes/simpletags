@@ -22,7 +22,7 @@ Simpletags is exactly what it sounds like...a simple way to use tags in your PHP
 ####  CodeIgniter
 
 1.  Put Simpletags.php into your application/libraries folder
-2.  Load it like normal: @$this->load->library('events');@ (or autoload it).
+2.  Load it like normal: @$this->load->library('simpletags');@ (or autoload it).
 
 ## USAGE
 
@@ -52,7 +52,7 @@ If no callback is specified then the function will return an array.  Consider th
 
     Hello there.
     
-    rest:get url="http://example.com/api" type="json"}
+    {rest:get url="http://example.com/api" type="json"}
     Stuff here
     {/rest:get}
     
